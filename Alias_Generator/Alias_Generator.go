@@ -32,7 +32,7 @@ var currentAliases []string
 
 func main() {
 	// test()
-	checkPath()
+	// checkPath()
 	// return
 	args := os.Args
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
@@ -42,10 +42,10 @@ func main() {
 
 		// 0700 is the permissions level. Gives user read, write, execute permissions. http://permissions-calculator.org/
 		os.Mkdir(folder, 0700)
-		fmt.Println("Adding " + folder + " to system path.")
-		checkPath()
 		fmt.Println("Setting self alias.")
 		generateOwnCMD()
+		fmt.Println("Adding " + folder + " to system path.")
+		checkPath()
 		fmt.Println("To use this tool, enter commands in the following format:")
 		fmt.Println("$ alias <yourAliasName> <yourCommand>")
 		return
@@ -419,28 +419,25 @@ func pathContains(input string, path string) bool {
 func checkPath() {
 
 	path := os.Getenv("Path")
-	fmt.Println(path)
+	// fmt.Println(path)
 
 	if !pathContains(folder, path) {
 		cwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		fmt.Println("CWD: ", cwd)
+		// fmt.Println("CWD: ", cwd)
 		checkError(err)
 		generatePathChangerCMD(cwd + "\\")
 		c := exec.Command("cmd", "/c", cwd+"\\addToUserPath.cmd", folder)
 		c.Run()
 		err = os.Remove(cwd + "\\addToUserPath.cmd")
 		checkError(err)
-		// set PATH=%PATH%;C:\xampp\php
 		os.Setenv("Path", path+folder+";")
-		// c = exec.Command("SET", "PATH=%PATH%;"+folder)
-		// c.Run()
-		// c = exec.Command("cmd", "/c", "SET", "PATH=%PATH%;"+folder)
-		// c.Run()
-		// c = exec.Command(cwd + "\\resetvars.bat")
-		// c.Run()
+		fmt.Println("Your path has been updated.")
+		// fmt.Println("Please RESTART the console to use this tool.")
+		// os.Exit(0)
 	}
-	fmt.Println(" ")
-	fmt.Println("New path: ", os.Getenv("Path"))
+
+	// fmt.Println(" ")
+	// fmt.Println("New path: ", os.Getenv("Path"))
 }
 
 func generatePathChangerCMD(location string) {
