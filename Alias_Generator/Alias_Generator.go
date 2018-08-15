@@ -9,12 +9,14 @@
 package main
 
 import (
+	// . "Alias_Path_Helper"
 	. "Cmd_Commands_Windows"
 	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -29,48 +31,69 @@ var currentAliases []string
 // ------------------------------------------- Main ------------------------------------------- //
 
 func main() {
+	// test()
+	checkPath()
+	// return
 	args := os.Args
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		fmt.Println("Alias_Generator running for the first time.")
 		fmt.Println("Setting up...")
 		fmt.Println("Creating " + folder + " directory.")
+
 		// 0700 is the permissions level. Gives user read, write, execute permissions. http://permissions-calculator.org/
 		os.Mkdir(folder, 0700)
+		fmt.Println("Adding " + folder + " to system path.")
+		checkPath()
 		fmt.Println("Setting self alias.")
 		generateOwnCMD()
-		if checkPath() {
-			fmt.Println("To use this tool, enter commands in the following format:")
-			fmt.Println("$ alias <yourAliasName> <yourCommand>")
-		}
+		fmt.Println("To use this tool, enter commands in the following format:")
+		fmt.Println("$ alias <yourAliasName> <yourCommand>")
 		return
 	}
-
-	if !checkPath() {
-		return
-	}
+	checkPath()
 
 	allCmdCommands = GetAllCmdCommands()
 	currentAliases = getCurrentAliases()
 	if !isInArray("alias", currentAliases) {
 		generateOwnCMD()
+		if len(args) == 1 {
+			return
+		}
+	}
+
+	if len(args) == 1 {
+		fmt.Println("Type 'alias help' for help.")
+		return
 	}
 
 	if len(args) > 1 {
 		arg := strings.TrimSpace(strings.ToLower(args[1]))
-		if arg == "list" || (args[1] == "delete" && len(args) == 2) {
+		if arg == "list" || (arg == "delete" && len(args) == 2) {
 			displayAliases()
 			return
-		} else if args[1] == "delete" && len(args) == 3 {
+		} else if arg == "delete" && len(args) == 3 {
 			removeAlias(args[2])
 			return
-		} else if args[1] == "help" && len(args) == 2 {
+		} else if arg == "help" {
 			displayHelp()
+			return
+		} else if arg == "special" {
+			addSpecialAlias()
 			return
 		}
 	}
 
 	addAlias(args)
 }
+
+// ------------------------------------------- Debug ------------------------------------------- //
+
+// func test() {
+// 	path := os.Getenv("Path")
+// 	fmt.Println("Path length: ", len(path))
+
+// 	generatePathChangerCMD()
+// }
 
 // ------------------------------------------- Private ------------------------------------------- //
 
@@ -79,6 +102,7 @@ func displayHelp() {
 	fmt.Println("-------------------- Alias Help --------------------")
 	fmt.Println("-Add alias: alias <yourName> <yourCommand>")
 	fmt.Println("-Remove alias: alias delete <yourName>")
+	fmt.Println("-Add multi command or special alias: alias special")
 	fmt.Println("-List all aliases: alias list")
 	fmt.Println("-Display help: alias help")
 }
@@ -107,7 +131,57 @@ func addAlias(args []string) {
 	}
 	argsString := concatenateStringsWithSpaces(args[2:])
 
-	generateCMD(args[1], argsString)
+	generateCMD(args[1], []string{argsString}, folder)
+}
+
+func addSpecialAlias() {
+	fmt.Println("Here you can add multiple commands to an alias. You can also use special cmd syntax.")
+	fmt.Println("For example, if you want a command that requires the path of the calling location:")
+	fmt.Println("alias name: <yourName>")
+	fmt.Println("command: <yourCommand>")
+	fmt.Println("arguments: %CD%")
+	// fmt.Println("See here for more details: http://www.robvanderwoude.com/parameters.php, http://www.robvanderwoude.com/batchcommands.php")
+
+	reader := bufio.NewReader(os.Stdin)
+	var text string
+	var name string
+	var commands []string
+
+	fmt.Println("Enter alias name: ")
+	for {
+		text, _ = reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		if isNameAvailable(text) {
+			name = text
+			break
+		}
+	}
+
+	var command string
+	for {
+		fmt.Println("Enter command: ")
+		text, _ = reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		if isCommandAvailable(text) {
+			command = text
+			break
+		}
+	}
+	for {
+		fmt.Println("Enter arguments for " + command + " command: ")
+		text, _ = reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		command += " " + text
+		commands = append(commands, command)
+		fmt.Println("Add more commands? (yes -> add more, no -> exit")
+		text, _ = reader.ReadString('\n')
+		text = strings.ToLower(strings.TrimSpace(text))
+		if text == "no" || text == "n" {
+			break
+		}
+	}
+	generateCMD(name, commands, folder)
+
 }
 
 // If alias exists, deletes it. Else prints current aliases
@@ -125,16 +199,16 @@ func removeAlias(name string) {
 func generateOwnCMD() {
 	alias := "alias"
 	command, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	checkError(err)
 	command = "\"" + command + "\\" + os.Args[0]
 	command += "\" %*"
-	checkError(err)
-	generateCMD(alias, command)
+	generateCMD(alias, []string{command}, folder)
 }
 
 // Given a name and a command, generates the .cmd file necessary to properly assign the alias
-func generateCMD(alias string, command string) {
+func generateCMD(alias string, commands []string, location string) {
 	fmt.Println("Generating .cmd")
-	file, err := os.Create(folder + alias + ".cmd")
+	file, err := os.Create(location + alias + ".cmd")
 	checkError(err)
 
 	defer func() {
@@ -142,9 +216,14 @@ func generateCMD(alias string, command string) {
 		checkError(err)
 	}()
 
-	body := []byte("@echo off\n" + command)
+	body := "@echo off\n"
+	for _, command := range commands {
+		body += command + "\n"
+	}
+	// remove trailing '\n'
+	body = body[:len(body)-1]
 
-	_, err = file.Write(body)
+	_, err = file.Write([]byte(body))
 	checkError(err)
 }
 
@@ -254,14 +333,14 @@ func concatenateStringsWithSpaces(stringArray []string) string {
 }
 
 // Checks if command exists
-func isCommandAvailable(name string) bool {
-	firstSpace := strings.Index(name, " ")
-	var command string
-	if firstSpace != -1 {
-		command = name[:firstSpace]
-	} else {
-		command = name
-	}
+func isCommandAvailable(command string) bool {
+	// firstSpace := strings.Index(name, " ")
+	// var command string
+	// if firstSpace != -1 {
+	// 	command = name[:firstSpace]
+	// } else {
+	// 	command = name
+	// }
 
 	if isInArray(command, allCmdCommands) {
 		return true
@@ -272,7 +351,7 @@ func isCommandAvailable(name string) bool {
 	if fileExists(command) {
 		return true
 	} else {
-		fmt.Println("The program you have entered does not exist. Create alias anyway? (y/n)")
+		fmt.Println("The program you have entered does not exist. Use anyway? (y/n)")
 		reader := bufio.NewReader(os.Stdin)
 		var text string
 		for {
@@ -310,27 +389,10 @@ func getAliasCommand(name string) string {
 	return string(body)[index+1:]
 }
 
-// Checks that folder is in the System path. If it's not, prints instructions on how to add it
-func checkPath() bool {
-
-	path := os.Getenv("Path")
-
-	if !pathContains(folder, path) {
-		fmt.Println("")
-		fmt.Println("ATTENTION: The folder containing the .cmd files must be added to the System Path. (Takes ~1 minute)")
-		fmt.Println("Instructions (for Windows):")
-		fmt.Println("-Open start menu. Search for 'System' (not 'System Information'")
-		fmt.Println("-Navigate to System -> Advanced system settings -> Environment Variables")
-		fmt.Println("-Under 'System variables', find 'Path'. Click on it and click 'Edit...'")
-		fmt.Println("-Click 'New' and input '" + folder + "' (without the apostrophes)")
-		fmt.Println("-Save all changes. Run this program again.")
-		return false
-	}
-	return true
-}
-
 // Recursively reads through a string with elements separated by semicolons. Checks if input string is an element
 func pathContains(input string, path string) bool {
+
+	// fmt.Println("Pair: ", input, path)
 
 	index := strings.Index(path, ";")
 
@@ -338,7 +400,11 @@ func pathContains(input string, path string) bool {
 		fmt.Println("WARNING: Path not formatted correctly.")
 		return false
 	}
-	if input[:len(input)-1] == path[:index] {
+	if input == path {
+		return true
+	}
+
+	if input == path[:index] || input[:len(input)-1] == path[:index] {
 		return true
 	} else {
 		// If we have reached the end of path, break the recursion
@@ -348,3 +414,68 @@ func pathContains(input string, path string) bool {
 		return pathContains(input, path[index+1:])
 	}
 }
+
+// Checks that folder is in the System path. If it's not, prints instructions on how to add it
+func checkPath() {
+
+	path := os.Getenv("Path")
+	fmt.Println(path)
+
+	if !pathContains(folder, path) {
+		cwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		fmt.Println("CWD: ", cwd)
+		checkError(err)
+		generatePathChangerCMD(cwd + "\\")
+		c := exec.Command("cmd", "/c", cwd+"\\addToUserPath.cmd", folder)
+		c.Run()
+		err = os.Remove(cwd + "\\addToUserPath.cmd")
+		checkError(err)
+		// set PATH=%PATH%;C:\xampp\php
+		os.Setenv("Path", path+folder+";")
+		// c = exec.Command("SET", "PATH=%PATH%;"+folder)
+		// c.Run()
+		// c = exec.Command("cmd", "/c", "SET", "PATH=%PATH%;"+folder)
+		// c.Run()
+		// c = exec.Command(cwd + "\\resetvars.bat")
+		// c.Run()
+	}
+	fmt.Println(" ")
+	fmt.Println("New path: ", os.Getenv("Path"))
+}
+
+func generatePathChangerCMD(location string) {
+	generateCMD(
+		"addToUserPath",
+		[]string{
+			"REM usage: append_user_path \"path\"",
+			"SET Key=\"HKCU\\Environment\"",
+			"FOR /F \"usebackq tokens=2*\" %%A IN (`REG QUERY %Key% /v PATH`) DO Set CurrPath=%%B",
+			"ECHO %CurrPath% > user_path_bak.txt",
+			"SETX PATH \"%CurrPath%\"%1;",
+		},
+		location,
+		// "C:/Users/arist/Desktop/Aristos Documents/Projects/Go/src/Alias_Generator/",
+	)
+}
+
+// func generateVBS() {
+// "Set oShell = WScript.CreateObject(\"WScript.Shell\")
+// filename = oShell.ExpandEnvironmentStrings(\"%TEMP%\resetvars.bat\")
+// Set objFileSystem = CreateObject(\"Scripting.fileSystemObject\")
+// Set oFile = objFileSystem.CreateTextFile(filename, TRUE)
+
+// set oEnv=oShell.Environment(\"System\")
+// for each sitem in oEnv
+//     oFile.WriteLine(\"SET \" & sitem)
+// next
+// path = oEnv(\"PATH\")
+
+// set oEnv=oShell.Environment(\"User\")
+// for each sitem in oEnv
+//     oFile.WriteLine(\"SET \" & sitem)
+// next
+
+// path = path & \";\" & oEnv(\"PATH\")
+// oFile.WriteLine(\"SET PATH=\" & path)
+// oFile.Close"
+// }
