@@ -432,8 +432,6 @@ func checkPath() {
 		checkError(err)
 		os.Setenv("Path", path+folder+";")
 		fmt.Println("Your path has been updated.")
-		// fmt.Println("Please RESTART the console to use this tool.")
-		// os.Exit(0)
 	}
 
 	// fmt.Println(" ")
