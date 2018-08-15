@@ -168,12 +168,12 @@ func addSpecialAlias() {
 		}
 	}
 	for {
-		fmt.Println("Enter arguments for " + command + " command: ")
+		fmt.Println("Enter arguments for " + command + " command (empty string -> no arguments: ")
 		text, _ = reader.ReadString('\n')
 		text = strings.TrimSpace(text)
 		command += " " + text
 		commands = append(commands, command)
-		fmt.Println("Add more commands? (yes -> add more, no -> exit")
+		fmt.Println("Add more commands? (yes -> add more, no -> exit)")
 		text, _ = reader.ReadString('\n')
 		text = strings.ToLower(strings.TrimSpace(text))
 		if text == "no" || text == "n" {
@@ -375,6 +375,12 @@ func isNameAvailable(name string) bool {
 		return false
 	} else if fileExists(name) {
 		fmt.Println("Cannot use folder/file name as alias name.")
+		return false
+	} else if strings.Index(name, " ") != -1 {
+		fmt.Println("Cannot use spaces in alias name.")
+		return false
+	} else if name == "" {
+		fmt.Println("Cannot use empty string as alias name. ")
 		return false
 	} else {
 		return true
