@@ -10,7 +10,6 @@ package main
 
 import (
 	// . "Alias_Path_Helper"
-	. "Cmd_Commands_Windows"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -25,7 +24,6 @@ const (
 	folder = "C:\\Cmd_Aliases\\"
 )
 
-var allCmdCommands []string
 var currentAliases []string
 
 // ------------------------------------------- Main ------------------------------------------- //
@@ -52,7 +50,7 @@ func main() {
 	}
 	checkPath()
 
-	allCmdCommands = GetAllCmdCommands()
+	// allCmdCommands = GetAllCmdCommands()
 	currentAliases = getCurrentAliases()
 	if !isInArray("alias", currentAliases) {
 		generateOwnCMD()
@@ -72,6 +70,10 @@ func main() {
 			displayAliases()
 			return
 		} else if arg == "delete" && len(args) == 3 {
+			if args[2] == "alias" {
+				fmt.Println("Cannot delete the \"alias\" alias.")
+				return
+			}
 			removeAlias(args[2])
 			return
 		} else if arg == "help" {
@@ -248,13 +250,11 @@ func validArguments(args []string) bool {
 	name := args[1]
 	command := args[2]
 
-	if len(args) > 3 {
-		command = concatenateStringsWithSpaces(args[2:])
-		if !isCommandAvailable(command) {
-			fmt.Println(command + " is not a valid command.")
-			return false
-		}
+	if !isCommandAvailable(command) {
+		fmt.Println(command + " is not a valid command.")
+		return false
 	}
+	// }
 	if name == "alias" {
 		fmt.Println("Cannot overwrite 'alias' name.")
 		return false
@@ -334,24 +334,10 @@ func concatenateStringsWithSpaces(stringArray []string) string {
 
 // Checks if command exists
 func isCommandAvailable(command string) bool {
-	// firstSpace := strings.Index(name, " ")
-	// var command string
-	// if firstSpace != -1 {
-	// 	command = name[:firstSpace]
-	// } else {
-	// 	command = name
-	// }
-
-	if isInArray(command, allCmdCommands) {
-		return true
-	} else if isInArray(command, currentAliases) {
-		return true
-	}
-
-	if fileExists(command) {
+	if fileExists(command) || commandExists(command) {
 		return true
 	} else {
-		fmt.Println("The program you have entered does not exist. Use anyway? (y/n)")
+		fmt.Println("The command/file you have entered does not exist. Use anyway? (y/n)")
 		reader := bufio.NewReader(os.Stdin)
 		var text string
 		for {
@@ -368,12 +354,18 @@ func isCommandAvailable(command string) bool {
 	}
 }
 
+func commandExists(name string) bool {
+	_, err := exec.Command("cmd", "/c", "where", name).Output()
+	if err == nil {
+		return true
+	} else {
+		return false
+	}
+}
+
 // Checks if name can be used as alias name
 func isNameAvailable(name string) bool {
-	if isInArray(name, allCmdCommands) {
-		fmt.Println("Cannot use existing command as alias name.")
-		return false
-	} else if fileExists(name) {
+	if fileExists(name) {
 		fmt.Println("Cannot use folder/file name as alias name.")
 		return false
 	} else if strings.Index(name, " ") != -1 {
@@ -381,6 +373,9 @@ func isNameAvailable(name string) bool {
 		return false
 	} else if name == "" {
 		fmt.Println("Cannot use empty string as alias name. ")
+		return false
+	} else if commandExists(name) && !isInArray(name, currentAliases) {
+		fmt.Println("Cannot use existing command as alias name.")
 		return false
 	} else {
 		return true
