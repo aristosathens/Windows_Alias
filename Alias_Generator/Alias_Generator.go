@@ -88,15 +88,6 @@ func main() {
 	addAlias(args)
 }
 
-// ------------------------------------------- Debug ------------------------------------------- //
-
-// func test() {
-// 	path := os.Getenv("Path")
-// 	fmt.Println("Path length: ", len(path))
-
-// 	generatePathChangerCMD()
-// }
-
 // ------------------------------------------- Private ------------------------------------------- //
 
 // Prints help
