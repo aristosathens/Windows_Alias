@@ -1,1 +1,3 @@
-Command Line tool for alias assignment
+https://github.com/aristosathens/Windows_Cmd_Aliases/wiki
+
+
