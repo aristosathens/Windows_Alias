@@ -1,10 +1,5 @@
 // Aristos Athens
-// Tool for automating the creation of persistent cmd aliases in Windows
-// Run once to set up. Then run again with any of the following commands:
-// alias <yourAlias> <yourCommand>
-// alias delete <yourAlias>
-// alias list
-// alist help
+// wiki: https://github.com/aristosathens/Windows_Cmd_Aliases/wiki
 
 package main
 
@@ -45,7 +40,7 @@ func main() {
 		fmt.Println("Adding " + folder + " to system path.")
 		checkPath()
 		fmt.Println("To use this tool, enter commands in the following format:")
-		fmt.Println("$ alias <yourAliasName> <yourCommand>")
+		fmt.Println("$ alias <yourAlias> <yourCommand>")
 		return
 	}
 	checkPath()
@@ -93,8 +88,8 @@ func main() {
 // Prints help
 func displayHelp() {
 	fmt.Println("\n-------------------- Alias Help --------------------")
-	fmt.Println("-Add alias: alias <yourName> <yourCommand>")
-	fmt.Println("-Remove alias: alias delete <yourName>")
+	fmt.Println("-Add alias: alias <yourAlias> <yourCommand>")
+	fmt.Println("-Remove alias: alias delete <yourAlias>")
 	fmt.Println("-Add multi command or special alias: alias special")
 	fmt.Println("-List all aliases: alias list")
 	fmt.Println("-Display help: alias help")
@@ -130,7 +125,7 @@ func addAlias(args []string) {
 func addSpecialAlias() {
 	fmt.Println("Here you can add multiple commands to an alias. You can also use special cmd syntax.")
 	fmt.Println("For example, if you want a command that requires the path of the calling location:")
-	fmt.Println("alias name: <yourName>")
+	fmt.Println("alias name: <yourAlias>")
 	fmt.Println("command: <yourCommand>")
 	fmt.Println("arguments: %CD%")
 	// fmt.Println("See here for more details: http://www.robvanderwoude.com/parameters.php, http://www.robvanderwoude.com/batchcommands.php")
@@ -232,7 +227,7 @@ func validArguments(args []string) bool {
 
 	if len(args) < 3 {
 		fmt.Println("Wrong number of arguments. Expected 2 arguments. Enter commands in the following format")
-		fmt.Println("$ alias <yourAliasName> <yourCommand>")
+		fmt.Println("$ alias <yourAlias> <yourCommand>")
 		return false
 	}
 
