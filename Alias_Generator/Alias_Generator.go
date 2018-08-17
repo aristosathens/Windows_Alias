@@ -9,7 +9,7 @@
 package main
 
 import (
-	// . "Alias_Path_Helper"
+	. "Cmd_Commands_Windows"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -92,7 +92,7 @@ func main() {
 
 // Prints help
 func displayHelp() {
-	fmt.Println("-------------------- Alias Help --------------------")
+	fmt.Println("\n-------------------- Alias Help --------------------")
 	fmt.Println("-Add alias: alias <yourName> <yourCommand>")
 	fmt.Println("-Remove alias: alias delete <yourName>")
 	fmt.Println("-Add multi command or special alias: alias special")
@@ -200,7 +200,6 @@ func generateOwnCMD() {
 
 // Given a name and a command, generates the .cmd file necessary to properly assign the alias
 func generateCMD(alias string, commands []string, location string) {
-	fmt.Println("Generating .cmd")
 	file, err := os.Create(location + alias + ".cmd")
 	checkError(err)
 
@@ -222,7 +221,7 @@ func generateCMD(alias string, commands []string, location string) {
 
 // Prints currently defined aliases
 func displayAliases() {
-	fmt.Println("-------------------- Current aliases --------------------")
+	fmt.Println("\n-------------------- Current aliases --------------------")
 	for _, alias := range currentAliases {
 		fmt.Println(alias + " " + getAliasCommand(alias))
 	}
@@ -231,7 +230,6 @@ func displayAliases() {
 // Checks if command line arguments are valid
 func validArguments(args []string) bool {
 
-	fmt.Println("num args: ", len(args))
 	if len(args) < 3 {
 		fmt.Println("Wrong number of arguments. Expected 2 arguments. Enter commands in the following format")
 		fmt.Println("$ alias <yourAliasName> <yourCommand>")
@@ -308,8 +306,8 @@ func fileExists(path string) bool {
 
 // Concatenates strings, inserting a space between each pair of elements
 func concatenateStringsWithSpaces(stringArray []string) string {
-	var buffer bytes.Buffer
 
+	var buffer bytes.Buffer
 	for _, item := range stringArray {
 		buffer.WriteString(item)
 		buffer.WriteString(" ")
@@ -317,7 +315,6 @@ func concatenateStringsWithSpaces(stringArray []string) string {
 
 	// Remove trailing space
 	returnString := buffer.String()
-	returnString = returnString[:len(returnString)-1]
 	returnString = strings.TrimSpace(returnString)
 
 	return returnString
@@ -345,7 +342,11 @@ func isCommandAvailable(command string) bool {
 	}
 }
 
+// Checks if command is available in command line by calling "where" command
 func commandExists(name string) bool {
+	if isInArray(name, GetAllCmdCommands()) {
+		return true
+	}
 	_, err := exec.Command("cmd", "/c", "where", name).Output()
 	if err == nil {
 		return true
@@ -384,14 +385,12 @@ func getAliasCommand(name string) string {
 // Recursively reads through a string with elements separated by semicolons. Checks if input string is an element
 func pathContains(input string, path string) bool {
 
-	// fmt.Println("Pair: ", input, path)
-
 	index := strings.Index(path, ";")
-
 	if index == -1 {
 		fmt.Println("WARNING: Path not formatted correctly.")
 		return false
 	}
+
 	if input == path {
 		return true
 	}
@@ -411,11 +410,9 @@ func pathContains(input string, path string) bool {
 func checkPath() {
 
 	path := os.Getenv("Path")
-	// fmt.Println(path)
 
 	if !pathContains(folder, path) {
 		cwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		// fmt.Println("CWD: ", cwd)
 		checkError(err)
 		generatePathChangerCMD(cwd + "\\")
 		c := exec.Command("cmd", "/c", cwd+"\\addToUserPath.cmd", folder)
@@ -425,11 +422,9 @@ func checkPath() {
 		os.Setenv("Path", path+folder+";")
 		fmt.Println("Your path has been updated.")
 	}
-
-	// fmt.Println(" ")
-	// fmt.Println("New path: ", os.Getenv("Path"))
 }
 
+// This generates a .cmd file (similar to .bat) which let's us permanently change the User's Path variable
 func generatePathChangerCMD(location string) {
 	generateCMD(
 		"addToUserPath",
@@ -441,28 +436,5 @@ func generatePathChangerCMD(location string) {
 			"SETX PATH \"%CurrPath%\"%1;",
 		},
 		location,
-		// "C:/Users/arist/Desktop/Aristos Documents/Projects/Go/src/Alias_Generator/",
 	)
 }
-
-// func generateVBS() {
-// "Set oShell = WScript.CreateObject(\"WScript.Shell\")
-// filename = oShell.ExpandEnvironmentStrings(\"%TEMP%\resetvars.bat\")
-// Set objFileSystem = CreateObject(\"Scripting.fileSystemObject\")
-// Set oFile = objFileSystem.CreateTextFile(filename, TRUE)
-
-// set oEnv=oShell.Environment(\"System\")
-// for each sitem in oEnv
-//     oFile.WriteLine(\"SET \" & sitem)
-// next
-// path = oEnv(\"PATH\")
-
-// set oEnv=oShell.Environment(\"User\")
-// for each sitem in oEnv
-//     oFile.WriteLine(\"SET \" & sitem)
-// next
-
-// path = path & \";\" & oEnv(\"PATH\")
-// oFile.WriteLine(\"SET PATH=\" & path)
-// oFile.Close"
-// }
