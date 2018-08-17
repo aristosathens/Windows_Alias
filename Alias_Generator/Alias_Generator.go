@@ -9,24 +9,24 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	// "math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 )
 
 const (
 	folder = "C:\\Cmd_Aliases\\"
 )
 
+var reader *bufio.Reader
 var currentAliases []string
 
 // ------------------------------------------- Main ------------------------------------------- //
 
 func main() {
-	// test()
-	// checkPath()
-	// return
 	args := os.Args
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		fmt.Println("Alias_Generator running for the first time.")
@@ -45,7 +45,6 @@ func main() {
 	}
 	checkPath()
 
-	// allCmdCommands = GetAllCmdCommands()
 	currentAliases = getCurrentAliases()
 	if !isInArray("alias", currentAliases) {
 		generateOwnCMD()
@@ -87,12 +86,17 @@ func main() {
 
 // Prints help
 func displayHelp() {
-	fmt.Println("\n-------------------- Alias Help --------------------")
-	fmt.Println("-Add alias: alias <yourAlias> <yourCommand>")
-	fmt.Println("-Remove alias: alias delete <yourAlias>")
-	fmt.Println("-Add multi command or special alias: alias special")
-	fmt.Println("-List all aliases: alias list")
-	fmt.Println("-Display help: alias help")
+	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+	fmt.Println("")
+	fmt.Fprintln(tabWriter, "COMMAND \t DESCRIPTION")
+	fmt.Fprintln(tabWriter, "------- \t -----------")
+	fmt.Fprintln(tabWriter, "alias <Alias> <Command> \t Assign <Alias> to <Command>")
+	fmt.Fprintln(tabWriter, "alias delete <Alias> \t Remove assigned alias")
+	fmt.Fprintln(tabWriter, "alias special \t Add multi command or special alias")
+	fmt.Fprintln(tabWriter, "alias list \t List all assigned aliases")
+	fmt.Fprintln(tabWriter, "alias help \t Display help")
+
+	tabWriter.Flush()
 }
 
 // If valid arguments provided, generates .cmd file to persistently assign alias to command
@@ -102,12 +106,9 @@ func addAlias(args []string) {
 	}
 
 	if isInArray(args[1], currentAliases) {
-		fmt.Println("You already have an alias with that name. Replace it? (y/n)")
-		reader := bufio.NewReader(os.Stdin)
-		var text string
+		fmt.Print("You already have an alias with that name. Replace it? (y/n) ")
 		for {
-			text, _ = reader.ReadString('\n')
-			text = strings.TrimSpace(text)
+			text := readUserInput()
 			if text == "no" || text == "n" {
 				return
 			} else if text == "yes" || text == "y" {
@@ -118,27 +119,22 @@ func addAlias(args []string) {
 		}
 	}
 	argsString := concatenateStringsWithSpaces(args[2:])
-
 	generateCMD(args[1], []string{argsString}, folder)
 }
 
+// Add an alias for executing multiple commands.
+// Use this for using special cmd syntax, likek %CD%, etc.
+// fmt.Println("See here for more details: http://www.robvanderwoude.com/parameters.php, http://www.robvanderwoude.com/batchcommands.php")
 func addSpecialAlias() {
-	fmt.Println("Here you can add multiple commands to an alias. You can also use special cmd syntax.")
-	fmt.Println("For example, if you want a command that requires the path of the calling location:")
-	fmt.Println("alias name: <yourAlias>")
-	fmt.Println("command: <yourCommand>")
-	fmt.Println("arguments: %CD%")
-	// fmt.Println("See here for more details: http://www.robvanderwoude.com/parameters.php, http://www.robvanderwoude.com/batchcommands.php")
 
-	reader := bufio.NewReader(os.Stdin)
 	var text string
 	var name string
 	var commands []string
 
-	fmt.Println("Enter alias name: ")
+	fmt.Println("Here you can add multiple commands to an alias and use special cmd syntax for arguments.")
+	fmt.Print("Enter alias name: ")
 	for {
-		text, _ = reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		text = readUserInput()
 		if isNameAvailable(text) {
 			name = text
 			break
@@ -147,29 +143,30 @@ func addSpecialAlias() {
 
 	var command string
 	for {
-		fmt.Println("Enter command: ")
-		text, _ = reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		fmt.Print("Enter command: ")
+		text = readUserInput()
 		if isCommandAvailable(text) {
 			command = text
-			break
+		} else {
+			continue
 		}
-	}
-	for {
-		fmt.Println("Enter arguments for " + command + " command (empty string -> no arguments: ")
-		text, _ = reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		fmt.Print("Enter arguments for " + command + " command (empty string -> no arguments): ")
+		text = readUserInput()
 		command += " " + text
 		commands = append(commands, command)
-		fmt.Println("Add more commands? (yes -> add more, no -> exit)")
-		text, _ = reader.ReadString('\n')
-		text = strings.ToLower(strings.TrimSpace(text))
-		if text == "no" || text == "n" {
-			break
+		fmt.Print("Add more commands? (y/n) ")
+		for {
+			text = strings.ToLower(readUserInput())
+			if text == "no" || text == "n" {
+				generateCMD(name, commands, folder)
+				return
+			} else if text == "yes" || text == "y" {
+				break
+			} else {
+				fmt.Println("Invalid input. Enter yes or no.")
+			}
 		}
 	}
-	generateCMD(name, commands, folder)
-
 }
 
 // If alias exists, deletes it. Else prints current aliases
@@ -216,10 +213,31 @@ func generateCMD(alias string, commands []string, location string) {
 
 // Prints currently defined aliases
 func displayAliases() {
-	fmt.Println("\n-------------------- Current aliases --------------------")
+	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+	fmt.Println("")
+	fmt.Fprintln(tabWriter, "NAME \t COMMAND(S)")
+	fmt.Fprintln(tabWriter, "---- \t ----------")
+
 	for _, alias := range currentAliases {
-		fmt.Println(alias + " " + getAliasCommand(alias))
+		command := getAliasCommand(alias)
+		// alias = strings.TrimSpace(alias)
+		i := strings.Index(command, "\n")
+		if i == -1 {
+			i = len(command)
+		}
+		fmt.Fprintln(tabWriter, alias+" \t "+command[:i])
+		for {
+			i = strings.Index(command, "\n")
+			if i == -1 {
+				break
+			}
+			column := " \t " + command[:i]
+			fmt.Fprintln(tabWriter, column)
+			command = command[i+1:]
+
+		}
 	}
+	tabWriter.Flush()
 }
 
 // Checks if command line arguments are valid
@@ -288,6 +306,7 @@ func isInArray(elem string, arr []string) bool {
 	return false
 }
 
+// Checks if file exists
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -320,12 +339,10 @@ func isCommandAvailable(command string) bool {
 	if fileExists(command) || commandExists(command) {
 		return true
 	} else {
-		fmt.Println("The command/file you have entered does not exist. Use anyway? (y/n)")
-		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("The command/file you have entered does not exist. Use anyway? (y/n) ")
 		var text string
 		for {
-			text, _ = reader.ReadString('\n')
-			text = strings.TrimSpace(text)
+			text = readUserInput()
 			if text == "no" || text == "n" {
 				return false
 			} else if text == "yes" || text == "y" {
@@ -373,6 +390,7 @@ func isNameAvailable(name string) bool {
 func getAliasCommand(name string) string {
 	body, err := ioutil.ReadFile(folder + name + ".cmd")
 	checkError(err)
+	// func Replace(s, old, new string, n int)
 	index := strings.Index(string(body), "\n")
 	return string(body)[index+1:]
 }
@@ -432,4 +450,15 @@ func generatePathChangerCMD(location string) {
 		},
 		location,
 	)
+}
+
+// Get user input
+func readUserInput() string {
+	if reader == nil {
+		reader = bufio.NewReader(os.Stdin)
+	}
+	input, err := reader.ReadString('\n')
+	checkError(err)
+	input = strings.TrimSpace(input)
+	return input
 }
