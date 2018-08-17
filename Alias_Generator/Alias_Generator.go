@@ -84,21 +84,6 @@ func main() {
 
 // ------------------------------------------- Private ------------------------------------------- //
 
-// Prints help
-func displayHelp() {
-	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
-	fmt.Println("")
-	fmt.Fprintln(tabWriter, "COMMAND \t DESCRIPTION")
-	fmt.Fprintln(tabWriter, "------- \t -----------")
-	fmt.Fprintln(tabWriter, "alias <Alias> <Command> \t Assign <Alias> to <Command>")
-	fmt.Fprintln(tabWriter, "alias delete <Alias> \t Remove assigned alias")
-	fmt.Fprintln(tabWriter, "alias special \t Add multi command or special alias")
-	fmt.Fprintln(tabWriter, "alias list \t List all assigned aliases")
-	fmt.Fprintln(tabWriter, "alias help \t Display help")
-
-	tabWriter.Flush()
-}
-
 // If valid arguments provided, generates .cmd file to persistently assign alias to command
 func addAlias(args []string) {
 	if !validArguments(args) {
@@ -211,35 +196,6 @@ func generateCMD(alias string, commands []string, location string) {
 	checkError(err)
 }
 
-// Prints currently defined aliases
-func displayAliases() {
-	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
-	fmt.Println("")
-	fmt.Fprintln(tabWriter, "NAME \t COMMAND(S)")
-	fmt.Fprintln(tabWriter, "---- \t ----------")
-
-	for _, alias := range currentAliases {
-		command := getAliasCommand(alias)
-		// alias = strings.TrimSpace(alias)
-		i := strings.Index(command, "\n")
-		if i == -1 {
-			i = len(command)
-		}
-		fmt.Fprintln(tabWriter, alias+" \t "+command[:i])
-		for {
-			i = strings.Index(command, "\n")
-			if i == -1 {
-				break
-			}
-			column := " \t " + command[:i]
-			fmt.Fprintln(tabWriter, column)
-			command = command[i+1:]
-
-		}
-	}
-	tabWriter.Flush()
-}
-
 // Checks if command line arguments are valid
 func validArguments(args []string) bool {
 
@@ -287,6 +243,50 @@ func getCurrentAliases() []string {
 	return aliases
 }
 
+// ------------------------------------------- Display ------------------------------------------- //
+
+// Prints help
+func displayHelp() {
+	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+
+	fmt.Println("")
+	fmt.Fprintln(tabWriter, "COMMAND \t DESCRIPTION")
+	fmt.Fprintln(tabWriter, "------- \t -----------")
+	fmt.Fprintln(tabWriter, "alias <Alias> <Command> \t Assign <Alias> to <Command>")
+	fmt.Fprintln(tabWriter, "alias delete <Alias> \t Remove assigned alias")
+	fmt.Fprintln(tabWriter, "alias special \t Add multi command or special alias")
+	fmt.Fprintln(tabWriter, "alias list \t List all assigned aliases")
+	fmt.Fprintln(tabWriter, "alias help \t Display help")
+
+	tabWriter.Flush()
+}
+
+// Prints currently defined aliases
+func displayAliases() {
+	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
+	fmt.Println("")
+	fmt.Fprintln(tabWriter, "NAME \t COMMAND(S)")
+	fmt.Fprintln(tabWriter, "---- \t ----------")
+
+	for _, alias := range currentAliases {
+		command := getAliasCommand(alias)
+		leftCol := alias
+		for {
+			i := strings.Index(command, "\n")
+			if i == -1 {
+				i = len(command)
+				fmt.Fprintln(tabWriter, leftCol+" \t "+command[:i])
+				break
+			}
+			column := leftCol + " \t " + command[:i]
+			fmt.Fprintln(tabWriter, column)
+			command = command[i+1:]
+			leftCol = ""
+		}
+	}
+	tabWriter.Flush()
+}
+
 // ------------------------------------------- Utilities ------------------------------------------- //
 
 // Respond to errors
@@ -294,6 +294,17 @@ func checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Get user input
+func readUserInput() string {
+	if reader == nil {
+		reader = bufio.NewReader(os.Stdin)
+	}
+	input, err := reader.ReadString('\n')
+	checkError(err)
+	input = strings.TrimSpace(input)
+	return input
 }
 
 // Checks if array contains elem
@@ -450,15 +461,4 @@ func generatePathChangerCMD(location string) {
 		},
 		location,
 	)
-}
-
-// Get user input
-func readUserInput() string {
-	if reader == nil {
-		reader = bufio.NewReader(os.Stdin)
-	}
-	input, err := reader.ReadString('\n')
-	checkError(err)
-	input = strings.TrimSpace(input)
-	return input
 }
