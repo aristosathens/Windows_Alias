@@ -6,10 +6,8 @@ package main
 import (
 	. "Cmd_Commands_Windows"
 	"bufio"
-	"bytes"
 	"fmt"
 	"io/ioutil"
-	// "math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,6 +25,7 @@ var currentAliases []string
 // ------------------------------------------- Main ------------------------------------------- //
 
 func main() {
+	fmt.Println("")
 	args := os.Args
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		fmt.Println("Alias_Generator running for the first time.")
@@ -103,7 +102,7 @@ func addAlias(args []string) {
 			}
 		}
 	}
-	argsString := concatenateStringsWithSpaces(args[2:])
+	argsString := strings.Join(args[2:], " ")
 	generateCMD(args[1], []string{argsString}, folder)
 }
 
@@ -123,6 +122,8 @@ func addSpecialAlias() {
 		if isNameAvailable(text) {
 			name = text
 			break
+		} else {
+			return
 		}
 	}
 
@@ -161,7 +162,7 @@ func removeAlias(name string) {
 		os.Remove(path)
 		fmt.Println("Removed '" + name + "' alias.")
 	} else {
-		fmt.Println("No such alias. Type 'alias list' to see all aliases")
+		fmt.Println("No such alias. Type 'alias list' to see all aliases.")
 	}
 }
 
@@ -208,20 +209,15 @@ func validArguments(args []string) bool {
 	name := args[1]
 	command := args[2]
 
-	if !isCommandAvailable(command) {
-		fmt.Println(command + " is not a valid command.")
-		return false
-	}
-	// }
-	if name == "alias" {
-		fmt.Println("Cannot overwrite 'alias' name.")
-		return false
-	}
 	if !isNameAvailable(name) {
 		return false
 	}
 	if !isCommandAvailable(command) {
-		// fmt.Println("Not a valid command.")
+		fmt.Println(command + " is not a valid command.")
+		return false
+	}
+	if name == "alias" {
+		fmt.Println("Cannot overwrite 'alias' name.")
 		return false
 	}
 
@@ -249,7 +245,6 @@ func getCurrentAliases() []string {
 func displayHelp() {
 	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
 
-	fmt.Println("")
 	fmt.Fprintln(tabWriter, "COMMAND \t DESCRIPTION")
 	fmt.Fprintln(tabWriter, "------- \t -----------")
 	fmt.Fprintln(tabWriter, "alias <Alias> <Command> \t Assign <Alias> to <Command>")
@@ -264,7 +259,6 @@ func displayHelp() {
 // Prints currently defined aliases
 func displayAliases() {
 	tabWriter := tabwriter.NewWriter(os.Stdout, 0, 0, 0, ' ', tabwriter.Debug)
-	fmt.Println("")
 	fmt.Fprintln(tabWriter, "NAME \t COMMAND(S)")
 	fmt.Fprintln(tabWriter, "---- \t ----------")
 
@@ -287,7 +281,7 @@ func displayAliases() {
 	tabWriter.Flush()
 }
 
-// ------------------------------------------- Utilities ------------------------------------------- //
+// ------------------------------------------- Utility ------------------------------------------- //
 
 // Respond to errors
 func checkError(err error) {
@@ -317,34 +311,6 @@ func isInArray(elem string, arr []string) bool {
 	return false
 }
 
-// Checks if file exists
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-// Concatenates strings, inserting a space between each pair of elements
-func concatenateStringsWithSpaces(stringArray []string) string {
-
-	var buffer bytes.Buffer
-	for _, item := range stringArray {
-		buffer.WriteString(item)
-		buffer.WriteString(" ")
-	}
-
-	// Remove trailing space
-	returnString := buffer.String()
-	returnString = strings.TrimSpace(returnString)
-
-	return returnString
-}
-
 // Checks if command exists
 func isCommandAvailable(command string) bool {
 	if fileExists(command) || commandExists(command) {
@@ -363,6 +329,18 @@ func isCommandAvailable(command string) bool {
 			}
 		}
 	}
+}
+
+// Checks if file exists
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
 
 // Checks if command is available in command line by calling "where" command
