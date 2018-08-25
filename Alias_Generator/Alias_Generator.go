@@ -38,12 +38,14 @@ func main() {
 		generateOwnCMD()
 		fmt.Println("Adding " + folder + " to system path.")
 		checkPath()
-		fmt.Println("To use this tool, enter commands in the following format:")
-		fmt.Println("$ alias <yourAlias> <yourCommand>")
+		fmt.Println("Ready to use.")
+		fmt.Println("Type 'alias help' for help.")
+
 		return
 	}
 	checkPath()
 
+	// If alias.cmd is missing, replace it
 	currentAliases = getCurrentAliases()
 	if !isInArray("alias", currentAliases) {
 		generateOwnCMD()
@@ -57,6 +59,7 @@ func main() {
 		return
 	}
 
+	// Check for keywords, respond as necessary
 	if len(args) > 1 {
 		arg := strings.TrimSpace(strings.ToLower(args[1]))
 		if arg == "list" || (arg == "delete" && len(args) == 2) {
@@ -78,6 +81,7 @@ func main() {
 		}
 	}
 
+	// If user input passes all tests, generate .cmd file
 	addAlias(args)
 }
 
@@ -85,6 +89,7 @@ func main() {
 
 // If valid arguments provided, generates .cmd file to persistently assign alias to command
 func addAlias(args []string) {
+
 	if !validArguments(args) {
 		return
 	}
@@ -155,7 +160,7 @@ func addSpecialAlias() {
 	}
 }
 
-// If alias exists, deletes it. Else prints current aliases
+// If alias exists, deletes it
 func removeAlias(name string) {
 	path := folder + name + ".cmd"
 	if fileExists(path) {

@@ -1,2 +1,1 @@
-Aristos Athens
-https://github.com/aristosathens/Windows_Cmd_Aliases/wiki
+Command Line tool for alias assignment
