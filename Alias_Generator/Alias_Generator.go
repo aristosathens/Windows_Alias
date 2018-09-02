@@ -109,6 +109,7 @@ func addAlias(args []string) {
 	}
 	argsString := strings.Join(args[2:], " ")
 	generateCMD(args[1], []string{argsString}, folder)
+	fmt.Println("Alias '" + args[1] + "' added.")
 }
 
 // Add an alias for executing multiple commands.
