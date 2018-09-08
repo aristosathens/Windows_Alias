@@ -76,7 +76,7 @@ func main() {
 			displayHelp()
 			return
 		} else if arg == "special" {
-			addSpecialAlias()
+			addSpecialAlias(args)
 			return
 		}
 	}
@@ -115,7 +115,7 @@ func addAlias(args []string) {
 // Add an alias for executing multiple commands.
 // Use this for using special cmd syntax, likek %CD%, etc.
 // fmt.Println("See here for more details: http://www.robvanderwoude.com/parameters.php, http://www.robvanderwoude.com/batchcommands.php")
-func addSpecialAlias() {
+func addSpecialAlias(args []string) {
 
 	var text string
 	var name string
@@ -130,6 +130,20 @@ func addSpecialAlias() {
 			break
 		} else {
 			return
+		}
+	}
+
+	if isInArray(text, currentAliases) {
+		fmt.Print("You already have an alias with that name. Replace it? (y/n) ")
+		for {
+			text := readUserInput()
+			if text == "no" || text == "n" {
+				return
+			} else if text == "yes" || text == "y" {
+				break
+			} else {
+				fmt.Println("Invalid input. Enter yes or no.")
+			}
 		}
 	}
 
