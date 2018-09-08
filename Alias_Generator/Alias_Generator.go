@@ -4,7 +4,7 @@
 package main
 
 import (
-	. "Cmd_Commands_Windows"
+	. "Alias/Cmd_Commands_Windows"
 	"bufio"
 	"fmt"
 	"io/ioutil"
