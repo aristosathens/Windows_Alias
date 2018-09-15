@@ -368,15 +368,10 @@ func commandExists(name string) bool {
 	if isInArray(name, GetAllCmdCommands()) {
 		return true
 	}
-	// _, err := exec.Command("cmd", "/c", "where", name).Output()
 	_, err := exec.LookPath(name)
 	if err == nil {
-		fmt.Println("TRUE")
-		fmt.Println(name)
 		return true
 	} else {
-		fmt.Println("FALSE")
-		fmt.Println(name)
 		return false
 	}
 }
