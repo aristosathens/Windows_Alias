@@ -8,7 +8,7 @@ This tool lets you assign persistent aliases to commands in the Windows cmd cons
 Run `Alias_Setup`: This will run the Alias_Setup.bat file.
 
 ## Usage
-`alias <yourAlias> <yourCommand> <yourArguments>`: Adds a new alias for yourCommand with alias name yourAlias. Will warn you if yourCommand is not a valid command or file, but it is up to the user to properly format arguments. Will ask you before overwriting already existing aliases. yourAlias cannot be the name of an existing command. yourCommand _can_ be an existing alias.
+`alias <yourAlias> <yourCommand> <yourArguments>`: Adds a new alias for yourCommand with alias name yourAlias. Will warn you if yourCommand is not a valid command or file, but it is up to the user to properly format arguments. Will ask you before overwriting already existing aliases. `<yourAlias>` cannot be the name of an existing command. `<yourCommand>` _can_ be an existing alias.
 
 ***
 
