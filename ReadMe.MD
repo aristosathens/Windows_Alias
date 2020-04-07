@@ -1,5 +1,5 @@
 ## Description
-This tool lets you assign persistent aliases to commands in the Windows cmd console. It is similar to the alias tool on *nix systems. It offers some advantages over using DOSKEY/other methods:
+This tool lets you assign persistent aliases to commands in the Windows `cmd` console. It is similar to the `alias` tool on *nix systems. It offers some advantages over using DOSKEY/other methods:
 * **Automatic** - Don't need to manually add .bat/.cmd files or manually update system path.
 * **Persistent** - Aliases remain after closing out of cmd console.
 * **Organized** - Let's you view/add/delete aliases all in one place.
